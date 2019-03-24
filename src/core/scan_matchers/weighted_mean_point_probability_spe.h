@@ -98,11 +98,12 @@ public:
                                    const RobotPose &pose,
                                    const GridMap &map,
                                    const SPEParams &params) const override {
-    auto total_weight = double{0};
-    auto total_probability = double{0};
+    double total_loss = 0;
+    double best_loss = 10000;
 
     auto observation = expected_scan_point_observation();
     scan.trig_provider->set_base_angle(pose.theta);
+    
     const auto &points = scan.points();
     for (LaserScan2D::Points::size_type i = 0; i < points.size(); ++i) {
       auto &sp = points[i];
@@ -121,15 +122,16 @@ public:
                                                         obs_area, map);
 
       auto sp_weight = _spw->weight(points, i);
-      total_probability += aoo_prob * sp_weight * sp.factor();
-      total_weight += sp_weight;
+      total_loss += std::exp(-aoo_prob) * sp_weight * sp.factor();
+
+      if (total_loss > best_loss)
+      {
+      	total_loss = 10000;
+      	break;
+      }
     }
-    if (total_weight == 0) {
-      // TODO: replace with writing to a proper logger
-      std::clog << "WARNING: unknown probability" << std::endl;
-      return unknown_probability();
-    }
-    return total_probability / total_weight;
+
+    return total_loss;
   }
 
 protected:

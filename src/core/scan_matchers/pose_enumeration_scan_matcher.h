@@ -37,7 +37,7 @@ public:
     });
     auto scan = filter_scan(raw_scan.scan, init_pose, map);
     auto best_pose = init_pose;
-    auto lowest_scan_loss = scan_probability(scan, best_pose, map);
+    double lowest_scan_loss = scan_probability(scan, best_pose, map);
 
     do_for_each_observer([best_pose, scan, lowest_scan_loss](ObsPtr obs) {
       obs->on_scan_test(best_pose, scan, lowest_scan_loss);
