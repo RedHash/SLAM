@@ -19,7 +19,7 @@
     <param name="slam/map/meters_per_cell" value="0.05" />
 
     <!-- = Localization = -->
-    <param name="slam/scmtch/type" value="HC" />
+    <param name="slam/scmtch/type" value="BF" />
     <param name="slam/scmtch/spe/type" value="wmpp" />
     <param name="slam/scmtch/spe/wmpp/weighting/type" value="even" />
 
