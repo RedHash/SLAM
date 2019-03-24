@@ -37,43 +37,48 @@ public:
     });
     auto scan = filter_scan(raw_scan.scan, init_pose, map);
     auto best_pose = init_pose;
-    auto best_pose_prob = scan_probability(scan, best_pose, map);
+    auto lowest_scan_loss = scan_probability(scan, best_pose, map);
 
-    do_for_each_observer([best_pose, scan, best_pose_prob](ObsPtr obs) {
-      obs->on_scan_test(best_pose, scan, best_pose_prob);
-      obs->on_pose_update(best_pose, scan, best_pose_prob);
+    do_for_each_observer([best_pose, scan, lowest_scan_loss](ObsPtr obs) {
+      obs->on_scan_test(best_pose, scan, lowest_scan_loss);
+      obs->on_pose_update(best_pose, scan, lowest_scan_loss);
     });
 
     _pose_enumerator->reset();
     while (_pose_enumerator->has_next()) {
       auto sampled_pose = _pose_enumerator->next(best_pose);
-      double sampled_scan_prob = scan_probability(scan, sampled_pose, map);
+      double sampled_scan_loss = scan_probability(scan, sampled_pose, map);
+      
       do_for_each_observer([&sampled_pose, &scan,
-                            &sampled_scan_prob](ObsPtr obs) {
-        obs->on_scan_test(sampled_pose, scan, sampled_scan_prob);
+                            &sampled_scan_loss](ObsPtr obs) {
+        obs->on_scan_test(sampled_pose, scan, sampled_scan_loss);
       });
 
-      auto pose_is_acceptable = best_pose_prob < sampled_scan_prob;
+      auto pose_is_acceptable = lowest_scan_loss > sampled_scan_loss;
+      
       _pose_enumerator->feedback(pose_is_acceptable);
+      
       if (!pose_is_acceptable) {
         continue;
       }
 
       // update pose
-      best_pose_prob = sampled_scan_prob;
+      lowest_scan_loss = sampled_scan_loss;
       best_pose = sampled_pose;
 
       // notify pose update
-      do_for_each_observer([&best_pose, &scan, &best_pose_prob](ObsPtr obs) {
-        obs->on_pose_update(best_pose, scan, best_pose_prob);
+      do_for_each_observer([&best_pose, &scan, &lowest_scan_loss](ObsPtr obs) {
+        obs->on_pose_update(best_pose, scan, lowest_scan_loss);
       });
     }
 
     pose_delta = best_pose - init_pose;
-    do_for_each_observer([&scan, &pose_delta, &best_pose_prob](ObsPtr obs) {
-        obs->on_matching_end(pose_delta, scan, best_pose_prob);
+    
+    do_for_each_observer([&scan, &pose_delta, &lowest_scan_loss](ObsPtr obs) {
+        obs->on_matching_end(pose_delta, scan, lowest_scan_loss);
     });
-    return best_pose_prob;
+
+    return lowest_scan_loss;
   }
 
 private:
