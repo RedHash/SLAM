@@ -4,7 +4,7 @@
 #include <vector>
 #include <memory>
 #include <algorithm>
-#include <limits>
+#include <float.h>
 #include <functional>
 
 #include "../states/state_data.h"
@@ -92,6 +92,19 @@ public:
                                            const GridMap &map,
                                            const SPEParams &params) const = 0;
 
+  virtual double estimate_scan_loss(const LaserScan2D &scan,
+                                           const RobotPose &pose,
+                                           const GridMap &map,
+                                           double best_loss) const {
+    return estimate_scan_loss(scan, pose, map, SPEParams{}, best_loss);
+  }
+
+  virtual double estimate_scan_loss(const LaserScan2D &scan,
+                                           const RobotPose &pose,
+                                           const GridMap &map,
+                                           const SPEParams &params,
+                                           double best_loss) const = 0;
+
   virtual ~ScanProbabilityEstimator() = default;
 private:
   OOPE _oope;
@@ -154,6 +167,16 @@ public:
   double scan_probability(const LaserScan2D &scan, const RobotPose &pose,
                           const GridMap &map, const SPEParams &p) const {
     return _scan_prob_estimator->estimate_scan_probability(scan, pose, map, p);
+  }
+
+  double scan_loss( const LaserScan2D &scan, const RobotPose &pose,
+                    const GridMap &map,      double best_loss = DBL_MAX) const {
+    return _scan_prob_estimator->estimate_scan_loss(scan, pose, map, best_loss);
+  }
+
+  double scan_loss( const LaserScan2D &scan, const RobotPose &pose,
+                    const GridMap &map,      const SPEParams &params, double best_loss = DBL_MAX) const {
+    return _scan_prob_estimator->estimate_scan_loss(scan, pose, map, params, best_loss);
   }
 
   SPE scan_probability_estimator() const {

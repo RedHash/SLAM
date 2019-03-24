@@ -2,6 +2,7 @@
 #define SLAM_CTOR_CORE_WEIGHTED_MEAN_DISCREPANCY_SP_ESTIMATOR
 
 #include <cmath>
+#include <float.h>
 #include "grid_scan_matcher.h"
 #include "../math_utils.h"
 #include "../maps/grid_rasterization.h"
@@ -94,12 +95,19 @@ public:
     return scan;
   }
 
-  double estimate_scan_probability(const LaserScan2D &scan,
-                                   const RobotPose &pose,
-                                   const GridMap &map,
-                                   const SPEParams &params) const override {
+  virtual double estimate_scan_probability(const LaserScan2D &scan,
+                                           const RobotPose &pose,
+                                           const GridMap &map,
+                                           const SPEParams &params) const override {
+  	return 0;
+  }
+
+  virtual double estimate_scan_loss(const LaserScan2D &scan,
+                                    const RobotPose &pose,
+								                    const GridMap &map,
+                                    const SPEParams &params,
+                                    double best_loss) const override {
     double total_loss = 0;
-    double best_loss = 10000;
 
     auto observation = expected_scan_point_observation();
     scan.trig_provider->set_base_angle(pose.theta);
@@ -126,7 +134,10 @@ public:
 
       if (total_loss > best_loss)
       {
-      	total_loss = 10000;
+      	total_loss = DBL_MAX;
+        // DEBUG
+        std::cout << "Pose was skipped. " << i + 1 << " out of " << points.size() << " points were used.\n";
+        // DEBUG
       	break;
       }
     }

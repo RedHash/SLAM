@@ -32,12 +32,14 @@ public:
                       const RobotPose &init_pose,
                       const GridMap &map,
                       RobotPoseDelta &pose_delta) override {
+
     do_for_each_observer([&init_pose, &raw_scan, &map](ObsPtr obs) {
       obs->on_matching_start(init_pose, raw_scan, map);
     });
+
     auto scan = filter_scan(raw_scan.scan, init_pose, map);
     auto best_pose = init_pose;
-    double lowest_scan_loss = scan_probability(scan, best_pose, map);
+    double lowest_scan_loss = scan_loss(scan, best_pose, map);
 
     do_for_each_observer([best_pose, scan, lowest_scan_loss](ObsPtr obs) {
       obs->on_scan_test(best_pose, scan, lowest_scan_loss);
@@ -45,9 +47,10 @@ public:
     });
 
     _pose_enumerator->reset();
+
     while (_pose_enumerator->has_next()) {
       auto sampled_pose = _pose_enumerator->next(best_pose);
-      double sampled_scan_loss = scan_probability(scan, sampled_pose, map);
+      double sampled_scan_loss = scan_loss(scan, sampled_pose, map, lowest_scan_loss);
       
       do_for_each_observer([&sampled_pose, &scan,
                             &sampled_scan_loss](ObsPtr obs) {
