@@ -132,8 +132,7 @@ public:
       auto sp_weight = _spw->weight(points, i);
       total_loss += std::exp(-aoo_prob) * sp_weight * sp.factor();
 
-      if (total_loss > best_loss)
-      {
+      if (total_loss > best_loss) {
       	total_loss = DBL_MAX;
         // DEBUG
         //std::cout << "Pose was skipped. " << i + 1 << " out of " << points.size() << " points were used.\n";

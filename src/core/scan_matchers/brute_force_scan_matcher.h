@@ -21,6 +21,11 @@ public:
     reset();
     // DEBUG
     std::cout << "My pose enumerator enabled\n";
+    std::cout << "Max attempts " << max_failed_attempts << "\n";
+
+    last_acceptable_x = _from_x;
+    last_acceptable_y = _from_y;
+    last_acceptable_t = _from_t;
   }
 
   bool has_next() const override {
@@ -36,15 +41,19 @@ public:
     if (!_base_pose_is_set) {
       _base_pose = prev_pose;
       _base_pose_is_set = true;
+
+      last_acceptable_x = _base_pose.x;
+      last_acceptable_y = _base_pose.y;
+      last_acceptable_t = _base_pose.theta;
     }
 
     return {_base_pose.x + _x, _base_pose.y + _y, _base_pose.theta + _t};
   }
 
   void reset() override {
-    _x = (_from_x + _to_x) / 2;
-    _y = (_from_y + _to_y) / 2;
-    _t = _from_t;
+    _x = last_acceptable_x;
+    _y = last_acceptable_y;
+    _t = last_acceptable_t;
     
     number_of_steps = 1;
     stepped_times = 0;
@@ -56,11 +65,14 @@ public:
   // Rotate for all angles in every cell
   void feedback(bool pose_is_acceptable) override {
     if (pose_is_acceptable) {
+      last_acceptable_x = _base_pose.x + _x;
+      last_acceptable_y = _base_pose.y + _y;
+      last_acceptable_t = _base_pose.theta + _t;
+
       failed_attemtps = 0;
     }
-    else {
+    else
       failed_attemtps += 1;
-    }
 
     if (_t <= _to_t - _step_t) {
       _t += _step_t;
@@ -119,12 +131,14 @@ private:
   double _from_y, _y, _to_y, _step_y;
   double _from_t, _t, _to_t, _step_t;
 
+  double last_acceptable_x, last_acceptable_y, last_acceptable_t;
+
   long number_of_steps;
   long stepped_times;
   enum class dir {left, top, right, bot} direction;
 
   long failed_attemtps;
-  const long max_failed_attempts = 50;
+  const long max_failed_attempts = 9223372036854775807;
 };
 
 // TODO: add a PoseEnumerationScanMatcher descendant
