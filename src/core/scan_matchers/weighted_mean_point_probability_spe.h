@@ -95,14 +95,14 @@ public:
     return scan;
   }
 
-  virtual double estimate_scan_probability(const LaserScan2D &scan,
+  double estimate_scan_probability(const LaserScan2D &scan,
                                            const RobotPose &pose,
                                            const GridMap &map,
                                            const SPEParams &params) const override {
   	return 0;
   }
 
-  virtual double estimate_scan_loss(const LaserScan2D &scan,
+  double estimate_scan_loss(const LaserScan2D &scan,
                                     const RobotPose &pose,
 								                    const GridMap &map,
                                     const SPEParams &params,
@@ -136,7 +136,7 @@ public:
       {
       	total_loss = DBL_MAX;
         // DEBUG
-        std::cout << "Pose was skipped. " << i + 1 << " out of " << points.size() << " points were used.\n";
+        //std::cout << "Pose was skipped. " << i + 1 << " out of " << points.size() << " points were used.\n";
         // DEBUG
       	break;
       }
