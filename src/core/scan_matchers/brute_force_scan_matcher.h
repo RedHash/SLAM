@@ -2,143 +2,155 @@
 #define SLAM_CTOR_CORE_BRUTE_FORCE_SCAN_MATCHER_H
 
 #include <cassert>
-#include <iostream>
+#include <chrono>
+#include <thread>
 
 #include "pose_enumeration_scan_matcher.h"
 
-// TODO: move to pose enumerators
+//#define DEBUG
+
+// TODO: moved_current_direction to pose enumerators
 // FIXME: class name
 class BruteForcePoseEnumerator : public PoseEnumerator {
 public:
   BruteForcePoseEnumerator(double from_x, double to_x, double step_x,
                            double from_y, double to_y, double step_y,
                            double from_t, double to_t, double step_t)
-    : _base_pose_is_set{false}
-    , _from_x{from_x}, _to_x{to_x}, _step_x{step_x}
-    , _from_y{from_y}, _to_y{to_y}, _step_y{step_y}
-    , _from_t{from_t}, _to_t{to_t}, _step_t{step_t} {
-    assert(_from_x <= _to_x && _from_y <= _to_y && _from_t <= _to_t);
-    reset();
-    // DEBUG
-    std::cout << "My pose enumerator enabled\n";
-    std::cout << "Max attempts " << max_failed_attempts << "\n";
-
-    last_acceptable_x = _from_x;
-    last_acceptable_y = _from_y;
-    last_acceptable_t = _from_t;
-  }
+  {
+    std::cout << "My brute-force pose enumerator enabled. " << max_attempts << " failed attempts\n";
+  } 
 
   bool has_next() const override {
-    // Check if pose in rectangle
-    if (failed_attemtps >= max_failed_attempts)
-      return false;
-
-    return _from_x <= _x && _x <= _to_x &&
-           _from_y <= _y && _y <= _to_y;
+    return attempts < max_attempts;
   }
 
   RobotPose next(const RobotPose &prev_pose) override {
     if (!_base_pose_is_set) {
-      _base_pose = prev_pose;
+      _current_pose = prev_pose; 
       _base_pose_is_set = true;
+      _current_pose.theta -= _step_t * (max_angle_attempts / 2);
 
-      last_acceptable_x = _base_pose.x;
-      last_acceptable_y = _base_pose.y;
-      last_acceptable_t = _base_pose.theta;
+      _from_t = _current_pose.theta;
+      
+      #ifdef DEBUG
+      std::cout << "\n\nBase pose was set x = " << _current_pose.x << " , y = " << _current_pose.y << " , theta = " << _current_pose.theta << "\n";
+      #endif
     }
 
-    return {_base_pose.x + _x, _base_pose.y + _y, _base_pose.theta + _t};
+    if (angle_attempts < max_angle_attempts) {
+      _current_pose.theta += _step_t;
+      angle_attempts += 1;
+    } else {
+      _current_pose.theta = _from_t;
+      angle_attempts = 0;
+
+      #ifdef DEBUG
+      std::chrono::seconds dura(1);
+      std::this_thread::sleep_for( dura );
+      std::cout << "Current moved_current_direction " << moved_current_direction << " Have to moved_current_direction " << should_move_current_direction << " Direction = " << direction << "\n";
+      #endif
+
+      if (moved_current_direction == should_move_current_direction) {
+        moved_current_direction = 0;
+        update_direction();
+
+        #ifdef DEBUG
+        std::cout << "Direction was updated " << direction << "\n";
+        #endif
+      }
+
+      move();
+    }
+
+    #ifdef DEBUG
+    std::cout << "Next pose x = " << _current_pose.x << " , y = " << _current_pose.y << " , theta = " << _current_pose.theta << "\n";
+    #endif
+
+    return _current_pose;
+  }
+
+  void update_direction() {
+    switch(direction) {
+      case 0:
+        direction += 1;
+        break;
+      case 1:
+        direction += 1;
+        should_move_current_direction += 1;
+        break;
+      case 2: 
+        direction += 1;
+        break;
+      case 3:
+        direction = 0;
+        should_move_current_direction += 1;
+        break;
+    }
+  }
+
+  void move() {
+    switch(direction) {
+      case 0:
+        _current_pose.x -= _step_x;
+        break;
+      case 1:
+        _current_pose.y += _step_y;
+        break;
+      case 2:
+        _current_pose.x += _step_x;
+        break;
+      case 3:
+        _current_pose.y -= _step_y;
+        break;
+    }
+
+    moved_current_direction += 1;
+    attempts += 1;
   }
 
   void reset() override {
-    _x = last_acceptable_x;
-    _y = last_acceptable_y;
-    _t = last_acceptable_t;
     
-    number_of_steps = 1;
-    stepped_times = 0;
-    failed_attemtps = 0;
-    direction = dir::left;
+    #ifdef DEBUG
+    std::chrono::seconds dura(1);
+    std::this_thread::sleep_for( dura );
+    #endif
+
+    _base_pose_is_set = false;
+    angle_attempts = 0;
+    attempts = 0;
+
+    should_move_current_direction = 1;
+    moved_current_direction = 0;
+    direction = 0;
   }
 
-
-  // Rotate for all angles in every cell
   void feedback(bool pose_is_acceptable) override {
     if (pose_is_acceptable) {
-      last_acceptable_x = _base_pose.x + _x;
-      last_acceptable_y = _base_pose.y + _y;
-      last_acceptable_t = _base_pose.theta + _t;
-
-      failed_attemtps = 0;
-    }
-    else
-      failed_attemtps += 1;
-
-    if (_t <= _to_t - _step_t) {
-      _t += _step_t;
-      return;
-    }
-
-    _t = _from_t;
-
-    if (stepped_times == number_of_steps) {
-      
-      stepped_times = 0;
-      
-      // Change direction
-      switch(direction) {
-        case dir::left:
-          direction = dir::top;
-          break;
-        case dir::top:
-          direction = dir::right;
-          number_of_steps += 1;
-          break;
-        case dir::right:
-          direction = dir::bot;
-          break;
-        case dir::bot:
-          direction = dir::left;
-          number_of_steps += 1;
-          break;
-      }
-    }
-
-    switch(direction) {
-      case dir::left:
-        _x -= _step_x;
-        break;
-      case dir::top:
-        _y += _step_y;
-        break;
-      case dir::right:
-        _x += _step_x;
-        break;
-      case dir::bot:
-        _y -= _step_y;
-        break;
-    }
-
-    stepped_times += 1;
+      if (attempts > max_attempts /  2)
+        attempts = max_attempts /  2;
+    } 
   }
 
 private:
   // TODO: use std::optional when C++17 is available
-  bool _base_pose_is_set;
-  RobotPose _base_pose;
+  bool _base_pose_is_set = false;
+  
+  double _step_x = 0.02;
+  double _step_y = 0.02;
+  // TODO : fix _from_t
+  double _from_t = -100000, _step_t = 0.0003;
 
-  double _from_x, _x, _to_x, _step_x;
-  double _from_y, _y, _to_y, _step_y;
-  double _from_t, _t, _to_t, _step_t;
+  long max_angle_attempts = 20;
+  long angle_attempts = 0;
 
-  double last_acceptable_x, last_acceptable_y, last_acceptable_t;
+  long max_attempts = 150;
+  long attempts = 0;
 
-  long number_of_steps;
-  long stepped_times;
-  enum class dir {left, top, right, bot} direction;
+  long should_move_current_direction = 1;
+  long moved_current_direction = 0;
+  short direction = 0;
 
-  long failed_attemtps;
-  const long max_failed_attempts = 9223372036854775807;
+  RobotPose _current_pose;
 };
 
 // TODO: add a PoseEnumerationScanMatcher descendant
