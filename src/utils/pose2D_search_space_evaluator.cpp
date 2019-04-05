@@ -151,33 +151,33 @@ void dump_scan(const LaserScan2D &scan, const RobotPose &pose) {
 }
 
 void run_evaluation(const GridMap &map, double resolution) {
-  auto sssb = std::make_shared<ScanMatcherSearchSpaceBuilder>(resolution);
-  auto tscan = TransformedLaserScan{};
-  tscan.pose_delta = RobotPoseDelta{};
-  // FIXME: scan generation from 0, 0
-  tscan.scan = LaserScanGenerator{to_lsp(100, 270, 1000)}
-                       .laser_scan_2D(map, {0.05, 0.05, 0}, 1);
-  dump_scan(tscan.scan, {0.05, 0.05, 0});
-  // generate plan brute force search space map
-  auto bfsm = BruteForceScanMatcher{
-    std::make_shared<WeightedMeanPointProbabilitySPE>(
-      std::make_shared<ObstacleBasedOccupancyObservationPE>(),
-      std::make_shared<EvenSPW>()
-     ),
-    -1, 1, resolution,
-    -1, 1, resolution,
-    0, 0, 0.1}; // TODO: rotation; FIXME: hand if delta is 0; accurate poses
-  bfsm.subscribe(sssb);
+  // auto sssb = std::make_shared<ScanMatcherSearchSpaceBuilder>(resolution);
+  // auto tscan = TransformedLaserScan{};
+  // tscan.pose_delta = RobotPoseDelta{};
+  // // FIXME: scan generation from 0, 0
+  // tscan.scan = LaserScanGenerator{to_lsp(100, 270, 1000)}
+  //                      .laser_scan_2D(map, {0.05, 0.05, 0}, 1);
+  // dump_scan(tscan.scan, {0.05, 0.05, 0});
+  // // generate plan brute force search space map
+  // auto bfsm = BruteForceScanMatcher{
+  //   std::make_shared<WeightedMeanPointProbabilitySPE>(
+  //     std::make_shared<ObstacleBasedOccupancyObservationPE>(),
+  //     std::make_shared<EvenSPW>()
+  //    ),
+  //   -1, 1, resolution,
+  //   -1, 1, resolution,
+  //   0, 0, 0.1}; // TODO: rotation; FIXME: hand if delta is 0; accurate poses
+  // bfsm.subscribe(sssb);
   
-  auto result = RobotPoseDelta{};
-  auto start_time = std::chrono::high_resolution_clock::now();
-  bfsm.process_scan(tscan, RobotPose{0.05, 0.05, 0}, map, result);
-  auto end_time = std::chrono::high_resolution_clock::now();
-  auto diff = std::chrono::duration<double>(end_time - start_time);
-  std::cout << "BF: " << diff.count() << std::endl;
+  // auto result = RobotPoseDelta{};
+  // auto start_time = std::chrono::high_resolution_clock::now();
+  // bfsm.process_scan(tscan, RobotPose{0.05, 0.05, 0}, map, result);
+  // auto end_time = std::chrono::high_resolution_clock::now();
+  // auto diff = std::chrono::duration<double>(end_time - start_time);
+  // std::cout << "BF: " << diff.count() << std::endl;
   
-  GridMapToPgmDumber<GridMap>{"sss_map"}
-    .on_map_update(*(sssb->map()));
+  // GridMapToPgmDumber<GridMap>{"sss_map"}
+  //   .on_map_update(*(sssb->map()));
 
-  // TODO: generate testee search space map
+  // // TODO: generate testee search space map
 }
