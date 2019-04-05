@@ -4,6 +4,8 @@
 #include <functional>
 #include <memory>
 
+#include <iostream>
+
 #include "pose_enumerators.h"
 #include "grid_scan_matcher.h"
 
@@ -49,7 +51,9 @@ public:
     _pose_enumerator->reset();
 
     while (_pose_enumerator->has_next()) {
+
       auto sampled_pose = _pose_enumerator->next(best_pose);
+
       double sampled_scan_loss = scan_loss(scan, sampled_pose, map, lowest_scan_loss);
       
       do_for_each_observer([&sampled_pose, &scan,
@@ -58,7 +62,7 @@ public:
       });
 
       auto pose_is_acceptable = lowest_scan_loss > sampled_scan_loss;
-      
+
       _pose_enumerator->feedback(pose_is_acceptable);
       
       if (!pose_is_acceptable) {
@@ -76,6 +80,8 @@ public:
     }
 
     pose_delta = best_pose - init_pose;
+
+    //std::cout << "Pose delta: x = " << pose_delta.x << " , y = " << pose_delta.y << " , theta = " << pose_delta.theta << "\n";
     
     do_for_each_observer([&scan, &pose_delta, &lowest_scan_loss](ObsPtr obs) {
         obs->on_matching_end(pose_delta, scan, lowest_scan_loss);

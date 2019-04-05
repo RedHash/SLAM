@@ -11,6 +11,8 @@
 //============================================================================//
 //                      Scan Point Weighting                                  //
 
+#include <iostream>
+
 class ScanPointWeighting {
 public:
   using PointId = LaserScan2D::Points::size_type;
@@ -109,6 +111,8 @@ public:
                                     double best_loss) const override {
     double total_loss = 0;
 
+    //std::cout << "Best loss is " << best_loss << "\n";
+
     auto observation = expected_scan_point_observation();
     scan.trig_provider->set_base_angle(pose.theta);
     
@@ -133,14 +137,15 @@ public:
       total_loss += std::exp(-aoo_prob) * sp_weight * sp.factor();
 
       if (total_loss > best_loss) {
-      	total_loss = DBL_MAX;
+      	//std::cout << "Pose was skipped. Its loss is " << total_loss;
+        total_loss = DBL_MAX;
         // DEBUG
-        //std::cout << "Pose was skipped. " << i + 1 << " out of " << points.size() << " points were used.\n";
         // DEBUG
       	break;
       }
     }
 
+    //std::cout << "Pose wasn't skipped. Its loss is " << total_loss;
     return total_loss;
   }
 
