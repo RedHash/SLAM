@@ -2,60 +2,67 @@
 #define SLAM_CTOR_CORE_BRUTE_FORCE_SCAN_MATCHER_H
 
 #include <cassert>
-#include <chrono>
-#include <thread>
+#include <algorithm>
 
 #include "pose_enumeration_scan_matcher.h"
 
 //#define DEBUG
+#ifdef DEBUG
+#include <thread>
+#endif
 
-// TODO: moved_current_direction to pose enumerators
+// TODO: _moved_current_direction to pose enumerators
 // FIXME: class name
 class BruteForcePoseEnumerator : public PoseEnumerator {
 public:
-  BruteForcePoseEnumerator(double from_x, double to_x, double step_x,
-                           double from_y, double to_y, double step_y,
-                           double from_t, double to_t, double step_t)
-  {
-    std::cout << "My brute-force pose enumerator enabled. " << max_attempts << " failed attempts\n";
+  BruteForcePoseEnumerator(long max_angle_attempts, long max_attempts, 
+                           double step_x, double step_y, double step_t)
+    : _max_angle_attempts(max_angle_attempts)
+    , _max_attempts(max_attempts)
+    , _step_x(step_x)
+    , _step_y(step_y)
+    , _step_t(step_t) {
+    std::cout << "BF pose enumerator enabled: " << _max_attempts << " failed attempts "
+              << _max_angle_attempts << " angle_attempts "  << _step_x << " shift x " 
+              << _step_y << " shift y " << _step_t << " shift t\n";
   } 
 
   bool has_next() const override {
-    return attempts < max_attempts;
+    return _attempts < _max_attempts;
   }
 
   RobotPose next(const RobotPose &prev_pose) override {
-    if (!_base_pose_is_set) {
+    if (!_first_pose_is_set) {
       _current_pose = prev_pose; 
-      _base_pose_is_set = true;
-      _current_pose.theta -= _step_t * (max_angle_attempts / 2);
+      _first_pose_is_set = true;
+      _current_pose.theta -= _step_t * (_max_angle_attempts / 2);
 
-      _from_t = _current_pose.theta;
+      _base_theta = _current_pose.theta;
       
       #ifdef DEBUG
       std::cout << "\n\nBase pose was set x = " << _current_pose.x << " , y = " << _current_pose.y << " , theta = " << _current_pose.theta << "\n";
       #endif
     }
 
-    if (angle_attempts < max_angle_attempts) {
+    if (_angle_attempts < _max_angle_attempts) {
       _current_pose.theta += _step_t;
-      angle_attempts += 1;
+      _angle_attempts += 1;
     } else {
-      _current_pose.theta = _from_t;
-      angle_attempts = 0;
+      _current_pose.theta = _base_theta;
+      _angle_attempts = 0;
 
       #ifdef DEBUG
       std::chrono::seconds dura(1);
       std::this_thread::sleep_for( dura );
-      std::cout << "Current moved_current_direction " << moved_current_direction << " Have to moved_current_direction " << should_move_current_direction << " Direction = " << direction << "\n";
+      std::cout << "Current _moved_current_direction " << _moved_current_direction << " Have to _moved_current_direction " << _current_direction_moves << " _direction = " << _direction << "\n";
       #endif
 
-      if (moved_current_direction == should_move_current_direction) {
-        moved_current_direction = 0;
-        update_direction();
+      if (_moved_current_direction == _current_direction_moves) {
+        update__direction();
+        _moved_current_direction = 0;
 
         #ifdef DEBUG
-        std::cout << "Direction was updated " << direction << "\n";
+        std::cout << "_direction was updated " << _direction << "\n";
         #endif
       }
 
@@ -69,27 +76,28 @@ public:
     return _current_pose;
   }
 
-  void update_direction() {
-    switch(direction) {
+  void update__direction() {
+    switch(_direction) {
       case 0:
-        direction += 1;
+        _direction += 1;
         break;
       case 1:
-        direction += 1;
-        should_move_current_direction += 1;
+        _direction += 1;
+        _current_direction_moves += 1;
         break;
       case 2: 
-        direction += 1;
+        _direction += 1;
         break;
       case 3:
-        direction = 0;
-        should_move_current_direction += 1;
+        _direction = 0;
+        _current_direction_moves += 1;
         break;
     }
   }
 
   void move() {
-    switch(direction) {
+    // Moves left, up, right, down
+    switch(_direction) {
       case 0:
         _current_pose.x -= _step_x;
         break;
@@ -104,8 +112,8 @@ public:
         break;
     }
 
-    moved_current_direction += 1;
-    attempts += 1;
+    _moved_current_direction += 1;
+    _attempts += 1;
   }
 
   void reset() override {
@@ -115,40 +123,41 @@ public:
     std::this_thread::sleep_for( dura );
     #endif
 
-    _base_pose_is_set = false;
-    angle_attempts = 0;
-    attempts = 0;
+    _first_pose_is_set = false;
+    _angle_attempts = 0;
+    _attempts = 0;
 
-    should_move_current_direction = 1;
-    moved_current_direction = 0;
-    direction = 0;
+    _current_direction_moves = 1;
+    _moved_current_direction = 0;
+    _direction = 0;
   }
 
   void feedback(bool pose_is_acceptable) override {
     if (pose_is_acceptable) {
-      if (attempts > max_attempts /  2)
-        attempts = max_attempts /  2;
+      _attempts = std::min(_attempts, _max_attempts / 2);
     } 
   }
 
 private:
   // TODO: use std::optional when C++17 is available
-  bool _base_pose_is_set = false;
+  bool _first_pose_is_set = false;
   
-  double _step_x = 0.02;
-  double _step_y = 0.02;
-  // TODO : fix _from_t
-  double _from_t = -100000, _step_t = 0.0003;
+  const long _max_angle_attempts;
+  const long _max_attempts;
 
-  long max_angle_attempts = 20;
-  long angle_attempts = 0;
+  long _angle_attempts = 0;
+  long _attempts = 0;
 
-  long max_attempts = 150;
-  long attempts = 0;
+  const double _step_x;
+  const double _step_y;
+  const double _step_t;
 
-  long should_move_current_direction = 1;
-  long moved_current_direction = 0;
-  short direction = 0;
+  // TODO : fix _base_theta
+  double _base_theta = -100000;
+
+  long _current_direction_moves = 1;
+  long _moved_current_direction = 0;
+  short _direction = 0;
 
   RobotPose _current_pose;
 };
@@ -158,14 +167,12 @@ private:
 class BruteForceScanMatcher : public PoseEnumerationScanMatcher {
 public:
   BruteForceScanMatcher(std::shared_ptr<ScanProbabilityEstimator> estimator,
-                        double from_x, double to_x, double step_x,
-                        double from_y, double to_y, double step_y,
-                        double from_t, double to_t, double step_t)
+                        long max_angle_attempts, long max_attempts,
+                        double step_x, double step_y, double step_t)
     : PoseEnumerationScanMatcher{
         estimator,
-        std::make_shared<BruteForcePoseEnumerator>(from_x, to_x, step_x,
-                                                   from_y, to_y, step_y,
-                                                   from_t, to_t, step_t)
+        std::make_shared<BruteForcePoseEnumerator>(max_angle_attempts, max_attempts,
+                                                   step_x, step_y, step_t)
       } {}
 };
 

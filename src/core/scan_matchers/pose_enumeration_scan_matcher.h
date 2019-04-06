@@ -4,10 +4,13 @@
 #include <functional>
 #include <memory>
 
-#include <iostream>
-
 #include "pose_enumerators.h"
 #include "grid_scan_matcher.h"
+
+//#define DEBUG
+#ifdef DEBUG
+#include <iostream>
+#endif
 
 // TODO: merge the logic with hill climbing scan matcher
 //       create free functions that create scan matchers
@@ -81,7 +84,9 @@ public:
 
     pose_delta = best_pose - init_pose;
 
-    //std::cout << "Pose delta: x = " << pose_delta.x << " , y = " << pose_delta.y << " , theta = " << pose_delta.theta << "\n";
+    #ifdef DEBUG
+    std::cout << "Pose delta: x = " << pose_delta.x << " , y = " << pose_delta.y << " , theta = " << pose_delta.theta << "\n";
+    #endif
     
     do_for_each_observer([&scan, &pose_delta, &lowest_scan_loss](ObsPtr obs) {
         obs->on_matching_end(pose_delta, scan, lowest_scan_loss);

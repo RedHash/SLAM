@@ -11,7 +11,10 @@
 //============================================================================//
 //                      Scan Point Weighting                                  //
 
+//#define DEBUG
+#ifdef DEBG
 #include <iostream>
+#endif
 
 class ScanPointWeighting {
 public:
@@ -111,8 +114,6 @@ public:
                                     double best_loss) const override {
     double total_loss = 0;
 
-    //std::cout << "Best loss is " << best_loss << "\n";
-
     auto observation = expected_scan_point_observation();
     scan.trig_provider->set_base_angle(pose.theta);
     
@@ -137,7 +138,10 @@ public:
       total_loss += std::exp(-aoo_prob) * sp_weight * sp.factor();
 
       if (total_loss > best_loss) {
-      	//std::cout << "Pose was skipped. Its loss is " << total_loss;
+        #ifdef DEBUG
+      	std::cout << "Pose was skipped. " << i << " out of" << points.size() << " points were used\n";
+        #endif
+
         total_loss = DBL_MAX;
         // DEBUG
         // DEBUG
@@ -145,7 +149,6 @@ public:
       }
     }
 
-    //std::cout << "Pose wasn't skipped. Its loss is " << total_loss;
     return total_loss;
   }
 

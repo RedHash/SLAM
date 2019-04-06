@@ -125,19 +125,26 @@ auto init_brute_force_sm(const PropertiesProvider &props,
                          std::shared_ptr<ScanProbabilityEstimator> spe) {
   static const std::string SM_NS = Slam_SM_NS + "BF/";
 
-  #define INIT_BFSM_RANGE(dim, limit, step)                             \
-    auto from_##dim = props.get_dbl(SM_NS + #dim + "/from", -(limit)); \
-    auto to_##dim = props.get_dbl(SM_NS + #dim + "/to", limit);        \
-    auto step_##dim = props.get_dbl(SM_NS + #dim + "/step", step);
+  // #define INIT_BFSM_RANGE(dim, limit, step)                             \
+  //   auto from_##dim = props.get_dbl(SM_NS + #dim + "/from", -(limit)); \
+  //   auto to_##dim = props.get_dbl(SM_NS + #dim + "/to", limit);        \
+  //   auto step_##dim = props.get_dbl(SM_NS + #dim + "/step", step);
 
-  INIT_BFSM_RANGE(x, 0.5, 0.1);
-  INIT_BFSM_RANGE(y, 0.5, 0.1);
-  INIT_BFSM_RANGE(t, deg2rad(5), deg2rad(1));
+  // INIT_BFSM_RANGE(x, 0.5, 0.1);
+  // INIT_BFSM_RANGE(y, 0.5, 0.1);
+  // INIT_BFSM_RANGE(t, deg2rad(5), deg2rad(1));
 
-  #undef INIT_BFSM_RANGE
+  // #undef INIT_BFSM_RANGE
+
+  uint max_angle_attempts = props.get_uint(SM_NS + "max_angle_attempts", 20);
+  uint max_attempts = props.get_uint(SM_NS + "max_attempts", 150);
+  double step_x = props.get_dbl(SM_NS + "step_x", 0.2);
+  double step_y = props.get_dbl(SM_NS + "step_y", 0.2);
+  double step_t = props.get_dbl(SM_NS + "step_t", 0.0003);
 
   return std::make_shared<BruteForceScanMatcher>(
-    spe, from_x, to_x, step_x, from_y, to_y, step_y, from_t, to_t, step_t);
+    spe, max_angle_attempts, 
+    max_attempts, step_x, step_y, step_t);
 }
 
 auto init_scan_matcher(const PropertiesProvider &props) {
