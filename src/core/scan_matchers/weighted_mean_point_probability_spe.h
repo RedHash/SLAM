@@ -143,8 +143,6 @@ public:
         #endif
 
         total_loss = DBL_MAX;
-        // DEBUG
-        // DEBUG
       	break;
       }
     }
