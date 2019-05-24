@@ -47,24 +47,7 @@ public:
     });
 
     auto noised_pose = init_pose;
-    //std::cout << "Pose : x = " << noised_pose.x << " , y = " << noised_pose.y << " , theta = " << noised_pose.theta << "\n";
-    // static long poses = 0;
-    
-    // if (poses > 835) {
-    //   double noise_x = (double(std::rand() % 50)) / 100;
-    //   double noise_y = (double(std::rand() % 50)) / 100;
-    //   //double noise_ = std::rand() % 1000;
-    //   if (noise_x > noise_y) {
-    //     noised_pose.x += noise_x;
-    //     std::cout << "x " << noise_x << "\n";
-    //   } else {
-    //     noised_pose.y += noise_y;
-    //     std::cout << "y " << noise_y << "\n";
-    //   }
-    // } else {
-    //   poses++;
-    // }
-
+  
     static bool start_noising = false;
     if (noised_pose.x < -6.1)
       start_noising = true;
@@ -73,15 +56,14 @@ public:
       double noise_x = (double(std::rand() % 100)) / 100;
       double noise_y = (double(std::rand() % 100)) / 100;  
 
-      // if (noise_x > noise_y) {
-      //   noised_pose.x += noise_x;
-      //   std::cout << "x " << noise_x << "\n";
-      // } else {
-      //   noised_pose.y += noise_y;
-      //   std::cout << "y " << noise_y << "\n";
-      // }
-      noised_pose.x += noise_x;
-      noised_pose.y += noise_y;
+      if (std::rand() % 2)
+        noised_pose.x += noise_x;
+      else
+        noised_pose.x -= noise_x;
+      if (std::rand() % 2)        
+        noised_pose.y += noise_y;
+      else 
+        noised_pose.y -= noise_y;
     }
     
     auto scan = filter_scan(raw_scan.scan, noised_pose, map);

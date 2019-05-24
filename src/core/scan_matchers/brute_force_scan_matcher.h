@@ -31,12 +31,16 @@ public:
   } 
 
   bool has_next() const override {
+    if (_rectification)
+      return true;
+    
     return _attempts < _max_attempts;
   }
 
   RobotPose next(const RobotPose &prev_pose) override {
     if (!_first_pose_is_set) {
       _current_pose = prev_pose; 
+      _best_pose = _current_pose;
       _first_pose_is_set = true;
       _current_pose.theta -= _step_t * (_max_angle_attempts / 2);
 
@@ -99,6 +103,22 @@ public:
 
     _moved_current_direction += 1;
     _attempts += 1;
+
+    if (_attempts == _max_attempts) {
+      _rectification = true;
+      _current_pose = _best_pose;
+      _step_x /= 3;
+      _step_y /= 3;
+
+      _current_direction_moves = 1;
+      _moved_current_direction = 0;
+      _direction = 0;
+      _angle_attempts = 0;
+    }
+
+    if (_attempts == _max_attempts + _rectif_attempts) {
+      _rectification = false;
+    }
   }
 
   void reset() override {
@@ -106,6 +126,7 @@ public:
     _step_y = _step_y_d;
     _step_t = _step_t_d;
 
+    _rectification = false;
     _first_pose_is_set = false;
     _angle_attempts = 0;
     _attempts = 0;
@@ -117,24 +138,15 @@ public:
 
   void feedback(bool pose_is_acceptable) override {
     if (pose_is_acceptable) {
-
-      _step_x /= 1;
-      _step_y /= 1;
-      _step_t /= 1;
-
-      // _angle_attempts = 0;
-      // _attempts /= 2;
-
-      // _current_direction_moves = 1;
-      // _moved_current_direction = 0;
-      // _direction = 0;
+      _best_pose = _current_pose;
     } 
   }
 
 private:
   // TODO: use std::optional when C++17 is available
   bool _first_pose_is_set = false;
-  
+  bool _rectification = false;
+
   const long _max_angle_attempts;
   const long _max_attempts;
 
@@ -144,6 +156,8 @@ private:
   const double _step_x_d;
   const double _step_y_d;
   const double _step_t_d;
+
+  const long _rectif_attempts = 24;
 
   double _step_x;
   double _step_y;
@@ -157,6 +171,7 @@ private:
   short _direction = 0;
 
   RobotPose _current_pose;
+  RobotPose _best_pose;
 };
 
 // TODO: add a PoseEnumerationScanMatcher descendant

@@ -21,12 +21,13 @@
     <param name="slam/map/meters_per_cell" value="0.1" />
 
     <!-- = Localization = -->
-    <param name="slam/scmtch/type" value="MC" />
-    <param name="slam/scmtch/MC/dispersion/translation" value="0.2" />
-    <param name="slam/scmtch/MC/dispersion/rotation" value="0.1" />
-    <param name="slam/scmtch/MC/dispersion/failed_attempts_limit" value="20" />
-    <param name="slam/scmtch/MC/attempts_limit" value="100" />
-    <!-- <param name="slam/scmtch/MC/seed" value="666666" /> -->
+    <param name="slam/scmtch/type" value="BF" />
+    <param name="slam/scmtch/BF/max_angle_attempts" value="10" />
+    <param name="slam/scmtch/BF/max_attempts" value="180" />
+    <param name="slam/scmtch/BF/step_x" value="0.15" />
+    <param name="slam/scmtch/BF/step_y" value="0.15" />
+    <param name="slam/scmtch/BF/step_t" value="0.01" />
+
 
     <param name="slam/scmtch/spe/type" value="wmpp" />
     <param name="slam/scmtch/spe/wmpp/weighting/type" value="viny" />
@@ -47,5 +48,10 @@
 
   <node name="rviz" pkg="rviz" type="rviz" respawn="true"
         args="-d $(find slam_constructor)/rviz/debug.rviz" />
+
+  <node name="pose_logger" pkg="slam_constructor" type="pose_logger.py">
+        <param name="target_frame" value="map" />
+        <param name="base_frame" value="base_link" />
+  </node>    
 
 </launch>
